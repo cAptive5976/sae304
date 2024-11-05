@@ -1,13 +1,32 @@
 #!/bin/bash
 
 NETWORK=$1
+METHOD=$2
 debut_script=$(date +%s)
 
-echo "Scan du réseau ${NETWORK} en cours"
+echo "Scan du réseau ${NETWORK} en cours avec la méthode ${METHOD}"
 printf "\n"
 
 debut_scan_ip=$(date +%s)
-nmap -sn -T5 -n --min-hostgroup 256 "${NETWORK}" -oG - | grep "Up$" | cut -d" " -f2 > /tmp/liste_ip
+case "$METHOD" in
+  "nmap")
+    echo "Utilisation de nmap pour scanner le réseau..."
+    nmap -sn -T5 -n --min-hostgroup 256 "${NETWORK}" -oG - | grep "Up$" | cut -d" " -f2 > /tmp/liste_ip
+    ;;
+  "netdiscover")
+    echo "Utilisation de netdiscover pour scanner le réseau..."
+    sudo netdiscover -r "${NETWORK}" | grep "^[0-9]" | awk '{print $1}' > /tmp/liste_ip
+    ;;
+  "arp-scan")
+    echo "Utilisation de arp-scan pour scanner le réseau..."
+    sudo arp-scan --localnet | grep "^[0-9]" | awk '{print $1}' > /tmp/liste_ip
+    ;;
+  *)
+    echo "Méthode non reconnue. Utilisez 'nmap', 'netdiscover' ou 'arp-scan'."
+    exit 1
+    ;;
+esac
+
 fin_scan_ip=$(date +%s)
 
 echo "Temps de scan du réseau : $((fin_scan_ip - debut_scan_ip))s"
